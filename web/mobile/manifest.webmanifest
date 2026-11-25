@@ -1,0 +1,18 @@
+{
+  "name": "Mobile Attendance System - Faculty App",
+  "short_name": "Attendance",
+  "description": "Android Mobile Attendance App for Faculty: create student lists, mark roll-call attendance offline, store on phone memory, and transfer via Internet or Bluetooth.",
+  "start_url": "/mobile/",
+  "scope": "/mobile/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#1e3a5f",
+  "icons": [
+    {
+      "src": "/mobile/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

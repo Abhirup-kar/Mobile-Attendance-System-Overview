@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1e3a5f" />
+  <title>Faculty Mobile Attendance App</title>
+  <link rel="manifest" href="/mobile/manifest.webmanifest" />
+  <link rel="icon" href="/mobile/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/shared/styles.css" />
+</head>
+<body class="mobile-body">
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">MA</div>
+      <div>
+        <h1 class="topbar-title">Faculty Attendance</h1>
+        <p class="topbar-subtitle">Android Phone Storage • Offline Ready</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="network-pill" class="badge badge-info">Checking...</span>
+      <a href="/" class="btn btn-ghost btn-sm">PC Console</a>
+    </div>
+  </header>
+
+  <main class="mobile-container">
+    <!-- TAB 1: SHEETS (ATTENDANCE STORAGE) -->
+    <section id="view-sheets" class="mobile-view">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Stored Attendance Sheets</h2>
+            <p class="muted" style="margin: 2px 0 0;">Saved locally in phone memory (IndexedDB). View or update anytime offline.</p>
+          </div>
+          <button id="btn-new-sheet-shortcut" class="btn btn-primary btn-sm">+ Create List</button>
+        </div>
+        <div class="filter-grid">
+          <div class="field">
+            <label for="filter-sheet-date">Filter by Date</label>
+            <input id="filter-sheet-date" type="date" class="input" />
+          </div>
+          <div class="field">
+            <label for="filter-sheet-subject">Filter by Subject</label>
+            <input id="filter-sheet-subject" type="text" class="input" placeholder="e.g. Data Structures" />
+          </div>
+        </div>
+      </div>
+      <div id="sheets-list"></div>
+    </section>
+
+    <!-- TAB 2: CREATE LIST (STUDENT ATTENDANCE LIST CREATION) -->
+    <section id="view-create" class="mobile-view hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Create Student Attendance Sheet</h2>
+          <button id="btn-load-sample-students" class="btn btn-sm" type="button">Load Sample Class (12)</button>
+        </div>
+
+        <div class="filter-grid" style="margin-bottom: 12px;">
+          <div class="field">
+            <label for="create-subject">Subject *</label>
+            <input id="create-subject" type="text" class="input" placeholder="e.g. Data Structures" required />
+          </div>
+          <div class="field">
+            <label for="create-class">Class / Section</label>
+            <input id="create-class" type="text" class="input" placeholder="e.g. B.Sc CS Sem 3" />
+          </div>
+          <div class="field">
+            <label for="create-faculty">Faculty Name</label>
+            <input id="create-faculty" type="text" class="input" placeholder="e.g. Prof. R. Deshpande" />
+          </div>
+          <div class="field">
+            <label for="create-date">Date *</label>
+            <input id="create-date" type="date" class="input" required />
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom: 14px;">
+          <label for="saved-roster-select">Load Saved Class Roster (Optional)</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="saved-roster-select" class="select">
+              <option value="">-- Select a saved roster --</option>
+            </select>
+            <button id="btn-apply-roster" class="btn btn-sm" type="button">Apply</button>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 14px 0;" />
+
+        <h3 style="margin: 0 0 8px; font-size: 0.95rem;">Add Students (Roll Number &amp; Name)</h3>
+        <div style="display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; margin-bottom: 10px;">
+          <input id="add-roll" type="text" class="input" placeholder="Roll No" />
+          <input id="add-name" type="text" class="input" placeholder="Student Full Name" />
+          <button id="btn-add-student" class="btn btn-primary" type="button">Add</button>
+        </div>
+
+        <details style="margin-bottom: 12px;">
+          <summary style="cursor: pointer; font-weight: 600; font-size: 0.88rem; color: var(--primary-accent);">Bulk Paste Student List (Roll, Name per line)</summary>
+          <div style="margin-top: 8px;">
+            <textarea id="bulk-students-text" class="textarea" placeholder="101, Aarav Patel&#10;102, Diya Sharma&#10;103, Rohan Verma"></textarea>
+            <button id="btn-import-bulk" class="btn btn-sm" type="button" style="margin-top: 6px;">Add All Lines</button>
+          </div>
+        </details>
+
+        <div id="draft-students-list" style="margin-bottom: 14px;"></div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.88rem; cursor: pointer;">
+            <input id="save-roster-checkbox" type="checkbox" checked />
+            Save student list as reusable roster
+          </label>
+          <button id="btn-save-create-sheet" class="btn btn-success btn-lg" type="button">Save &amp; Mark Attendance</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: MARK (ATTENDANCE MARKING) -->
+    <section id="view-mark" class="mobile-view hidden">
+      <div id="mark-empty" class="card empty-state hidden">
+        <h3>No Active Sheet Selected</h3>
+        <p>Create a new student attendance list or open an existing sheet from storage.</p>
+        <button id="btn-mark-go-create" class="btn btn-primary" type="button">Create Attendance List</button>
+      </div>
+
+      <div id="mark-workspace" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2 id="mark-sheet-title" class="card-title">Subject</h2>
+              <p id="mark-sheet-meta" class="muted" style="margin: 2px 0 0;"></p>
+            </div>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.86rem; font-weight: 700; cursor: pointer;">
+              <input id="toggle-roll-call" type="checkbox" />
+              Roll-Call Mode
+            </label>
+          </div>
+
+          <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
+            <div class="kpi-card present" style="padding: 10px;">
+              <div class="kpi-label">Present</div>
+              <div id="mark-present-count" class="kpi-value" style="font-size: 1.4rem;">0</div>
+            </div>
+            <div class="kpi-card absent" style="padding: 10px;">
+              <div class="kpi-label">Absent</div>
+              <div id="mark-absent-count" class="kpi-value" style="font-size: 1.4rem;">0</div>
+            </div>
+            <div class="kpi-card" style="padding: 10px;">
+              <div class="kpi-label">Unmarked</div>
+              <div id="mark-unmarked-count" class="kpi-value" style="font-size: 1.4rem;">0</div>
+            </div>
+          </div>
+
+          <div class="progress-track" style="margin-bottom: 12px;">
+            <div id="mark-progress-bar" class="progress-fill" style="width: 0%;"></div>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between;">
+            <div style="display: flex; gap: 6px;">
+              <button id="btn-all-present" class="btn btn-sm" type="button">Mark All Present</button>
+              <button id="btn-all-absent" class="btn btn-sm" type="button">Mark All Absent</button>
+            </div>
+            <button id="btn-finish-go-transfer" class="btn btn-primary btn-sm" type="button">Transfer to Server &rarr;</button>
+          </div>
+        </div>
+
+        <div id="roll-call-container" class="roll-call-card hidden"></div>
+        <div id="mark-students-container"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: TRANSFER (INTERNET & BLUETOOTH) -->
+    <section id="view-transfer" class="mobile-view hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">PC Server Connection (Internet)</h2>
+          <span id="server-conn-badge" class="badge badge-neutral">Not tested</span>
+        </div>
+        <div class="field" style="margin-bottom: 10px;">
+          <label for="server-url-input">PC Server Base URL</label>
+          <div style="display: flex; gap: 8px;">
+            <input id="server-url-input" type="url" class="input" placeholder="http://192.168.1.10:3000" />
+            <button id="btn-test-server" class="btn" type="button">Test</button>
+          </div>
+        </div>
+        <button id="btn-transfer-all" class="btn btn-primary" style="width: 100%;" type="button">Transfer All Pending Sheets via Internet</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Transfer Sheets (Internet or Bluetooth)</h2>
+        </div>
+        <p class="muted" style="margin-top: 0;">
+          Send directly over Wi-Fi / Internet to the school PC server, or export a <code>.json</code> / <code>.csv</code> file to send via Android Bluetooth to the PC Operator Console.
+        </p>
+        <div id="transfer-sheets-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Mobile App Navigation">
+    <button class="bottom-nav-btn active" data-tab="sheets" type="button">
+      <span class="bottom-nav-icon">&#128203;</span>
+      <span>Sheets</span>
+    </button>
+    <button class="bottom-nav-btn" data-tab="create" type="button">
+      <span class="bottom-nav-icon">&#10133;</span>
+      <span>Create List</span>
+    </button>
+    <button class="bottom-nav-btn" data-tab="mark" type="button">
+      <span class="bottom-nav-icon">&#9989;</span>
+      <span>Mark</span>
+    </button>
+    <button class="bottom-nav-btn" data-tab="transfer" type="button">
+      <span class="bottom-nav-icon">&#128228;</span>
+      <span>Transfer</span>
+    </button>
+  </nav>
+
+  <script src="/shared/utils.js"></script>
+  <script src="/mobile/mobile.js"></script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobile Attendance System — PC Operator Portal</title>
+  <link rel="stylesheet" href="/shared/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">PC</div>
+      <div>
+        <h1 class="topbar-title">Mobile Attendance System</h1>
+        <p class="topbar-subtitle">PC Operator Console • Server Storage &amp; Attendance Check</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/mobile" class="btn btn-ghost btn-sm">Open Mobile Faculty App</a>
+      <button id="btn-header-import" class="btn btn-ghost btn-sm" type="button">Import File (Bluetooth)</button>
+      <button id="btn-export-csv" class="btn btn-ghost btn-sm" type="button">Export CSV</button>
+      <button id="btn-seed-demo" class="btn btn-ghost btn-sm" type="button">Load Sample Data</button>
+      <button id="btn-refresh-all" class="btn btn-primary btn-sm" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <nav class="tabs" aria-label="Operator Sections">
+      <button class="tab-btn active" data-tab="check" type="button">Attendance Check</button>
+      <button class="tab-btn" data-tab="sheets" type="button">Transferred Sheets</button>
+      <button class="tab-btn" data-tab="analytics" type="button">Class Performance</button>
+      <button class="tab-btn" data-tab="import" type="button">Import Bluetooth / File</button>
+    </nav>
+
+    <!-- TAB 1: ATTENDANCE CHECK -->
+    <section id="tab-check" class="operator-tab">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Entries</div>
+          <div id="kpi-total" class="kpi-value">0</div>
+        </div>
+        <div class="kpi-card present">
+          <div class="kpi-label">Presentees</div>
+          <div id="kpi-present" class="kpi-value">0</div>
+        </div>
+        <div class="kpi-card absent">
+          <div class="kpi-label">Absentees</div>
+          <div id="kpi-absent" class="kpi-value">0</div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label">Attendance %</div>
+          <div id="kpi-pct" class="kpi-value">0%</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Filter &amp; Sort Attendance</h2>
+            <p class="muted" style="margin: 2px 0 0;">Check attendance by student roll number, date, time, and sort by date to inspect presentees and absentees.</p>
+          </div>
+          <button id="btn-clear-filters" class="btn btn-sm" type="button">Clear Filters</button>
+        </div>
+
+        <div class="filter-grid">
+          <div class="field">
+            <label for="filter-date">Particular Date</label>
+            <input id="filter-date" type="date" class="input" />
+          </div>
+          <div class="field">
+            <label for="filter-subject">Subject</label>
+            <select id="filter-subject" class="select">
+              <option value="">All Subjects</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-search">Roll No / Student Name</label>
+            <input id="filter-search" type="text" class="input" placeholder="e.g. 103 or Rohan" />
+          </div>
+          <div class="field">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" class="select">
+              <option value="">All (Present &amp; Absent)</option>
+              <option value="Present">Present Only</option>
+              <option value="Absent">Absent Only</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-method">Transfer Method</label>
+            <select id="filter-method" class="select">
+              <option value="">All Methods</option>
+              <option value="internet">Internet</option>
+              <option value="bluetooth">Bluetooth</option>
+              <option value="file_import">File Import</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="sort-by">Sort By</label>
+            <div style="display: flex; gap: 6px;">
+              <select id="sort-by" class="select">
+                <option value="date">Date</option>
+                <option value="roll_number">Roll Number</option>
+                <option value="time">Time</option>
+                <option value="student_name">Student Name</option>
+                <option value="subject">Subject</option>
+                <option value="status">Status</option>
+              </select>
+              <button id="btn-sort-dir" class="btn" type="button" title="Toggle Sort Direction">Desc</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="date-chips" class="chip-row"></div>
+      </div>
+
+      <!-- Presentees & Absentees Split View -->
+      <div id="split-section" class="split-grid hidden">
+        <div class="split-panel present">
+          <div class="split-panel-header">
+            <span id="presentees-title">Presentees</span>
+            <span id="presentees-count" class="badge badge-present">0</span>
+          </div>
+          <div id="presentees-list" class="split-panel-body"></div>
+        </div>
+        <div class="split-panel absent">
+          <div class="split-panel-header">
+            <span id="absentees-title">Absentees</span>
+            <span id="absentees-count" class="badge badge-absent">0</span>
+          </div>
+          <div id="absentees-list" class="split-panel-body"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Attendance Records</h2>
+          <span id="records-count-label" class="muted">0 record(s)</span>
+        </div>
+        <div id="attendance-table-container"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: TRANSFERRED SHEETS -->
+    <section id="tab-sheets" class="operator-tab hidden">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Transferred Attendance Sheets</h2>
+            <p class="muted" style="margin: 2px 0 0;">All sheets received from faculty Android phones via Internet or Bluetooth.</p>
+          </div>
+        </div>
+        <div id="sheets-table-container"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CLASS PERFORMANCE ANALYTICS -->
+    <section id="tab-analytics" class="operator-tab hidden">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Overall Class Attendance Performance</h2>
+            <p class="muted" style="margin: 2px 0 0;">Aggregate attendance trends across dates, subjects, and individual students.</p>
+          </div>
+          <div style="min-width: 220px;">
+            <select id="analytics-subject-filter" class="select">
+              <option value="">All Subjects</option>
+            </select>
+          </div>
+        </div>
+        <div id="analytics-kpi-grid" class="kpi-grid"></div>
+      </div>
+
+      <div class="split-grid">
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom: 12px;">Date-wise Attendance Trend</h3>
+          <div id="analytics-date-chart"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom: 12px;">Subject-wise Performance</h3>
+          <div id="analytics-subject-bars"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Student-wise Performance Report</h3>
+          <span class="badge badge-warning">Threshold: 75%</span>
+        </div>
+        <div id="analytics-student-table"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: IMPORT BLUETOOTH / FILE -->
+    <section id="tab-import" class="operator-tab hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Import Attendance Sheet (Bluetooth / File Transfer)</h2>
+        </div>
+        <p class="muted" style="margin-top: 0;">
+          Upload <code>.json</code> or <code>.csv</code> attendance files received on this PC from a faculty Android phone via Bluetooth or USB.
+          You can also run <code>python3 server/bluetooth_receiver.py --mode watch</code> to auto-import Bluetooth downloads.
+        </p>
+
+        <div id="import-dropzone" class="dropzone" tabindex="0">
+          <p style="margin: 0 0 8px; font-weight: 700;">Drag &amp; drop an attendance <code>.json</code> or <code>.csv</code> file here</p>
+          <p class="muted" style="margin: 0 0 12px;">or choose a file from your computer</p>
+          <input id="import-file-input" type="file" accept=".json,.csv,application/json,text/csv" class="hidden" />
+          <button id="btn-choose-file" class="btn btn-primary" type="button">Choose File</button>
+          <div id="selected-file-label" class="muted" style="margin-top: 10px; font-weight: 600;"></div>
+        </div>
+
+        <h3 style="margin: 18px 0 10px; font-size: 0.95rem;">Optional Metadata (used when importing plain CSV without Subject/Date columns)</h3>
+        <div class="filter-grid" style="margin-bottom: 16px;">
+          <div class="field">
+            <label for="import-subject">Subject Override</label>
+            <input id="import-subject" type="text" class="input" placeholder="e.g. Data Structures" />
+          </div>
+          <div class="field">
+            <label for="import-date">Date Override</label>
+            <input id="import-date" type="date" class="input" />
+          </div>
+          <div class="field">
+            <label for="import-faculty">Faculty Name</label>
+            <input id="import-faculty" type="text" class="input" placeholder="e.g. Prof. R. Deshpande" />
+          </div>
+          <div class="field">
+            <label for="import-method">Transfer Method</label>
+            <select id="import-method" class="select">
+              <option value="bluetooth">Bluetooth</option>
+              <option value="file_import">File Import</option>
+              <option value="internet">Internet</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="btn-upload-submit" class="btn btn-success btn-lg" type="button" disabled>Upload &amp; Save to PC Server</button>
+        <div id="import-result-box" style="margin-top: 14px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sheet Detail Modal -->
+  <div id="sheet-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-sheet-title" style="margin: 0;">Sheet Details</h3>
+          <div id="modal-sheet-subtitle" class="muted" style="font-size: 0.85rem;"></div>
+        </div>
+        <button id="btn-close-modal" class="btn btn-sm" type="button">Close</button>
+      </div>
+      <div id="modal-sheet-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/shared/utils.js"></script>
+  <script src="/operator/operator.js"></script>
+</body>
+</html>
